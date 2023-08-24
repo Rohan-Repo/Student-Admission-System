@@ -1,0 +1,231 @@
+
+  		
+-----------------------------------------------------------------------------------------------------------------------
+DB Creation :
+
+mysql> create database studadmin;
+Query OK, 0 rows affected (0.25 sec)
+
+mysql> use studadmin;
+
+mysql> create user 'rd'@'localhost' IDENTIFIED BY 'sarhad123';
+Query OK, 0 rows affected (0.25 sec)
+
+mysql> grant all privileges on *.* to 'rd'@'localhost'
+    -> with GRANT option;
+Query OK, 0 rows affected (0.00 sec)
+
+------------------------------------------------------------------------------------------------------------------------  			
+Table Creation :
+
+1. 
+create table Student_Master( studRegNum int PRIMARY KEY auto_increment , 
+studName varchar(20), studContact int(12), studEMail varchar(40) );
+
+mysql> alter table student_master modify studContact varchar(15);
+
+alter table student_master add( scholar_eligb char(1), percent_concess int(3) );
+
+alter table student_master add( addr1 varchar(100),addr2 varchar(100), addr3 varchar(100),
+academicYear_from int(4), academicYear_to int(4),
+courseNum int, FOREIGN KEY(courseNum) REFERENCES Course_Master(courseNum) );
+
+
+
+
+2. 
+create table Course_Master( courseNum int PRIMARY KEY auto_increment ,
+courseName varchar(20), courseFees float, courseDuration int );
+
+
+
+3. 
+create table Stud_Admission( challanNum int PRIMARY KEY auto_increment , 
+studRegNum int, courseNum int,
+FOREIGN KEY(studRegNum) REFERENCES Student_Master(studRegNum),
+FOREIGN KEY(courseNum) REFERENCES Course_Master(courseNum),
+admissionDate date, currentInstallment float, balance float );
+
+alter table stud_admission add( academicYear_from int(4), academicYear_to int(4) );
+
+
+4. 
+create table Stud_Qualifications( qualificationNum int PRIMARY KEY auto_increment , 
+studRegNum int, courseNum int,  
+FOREIGN KEY(studRegNum) REFERENCES Student_Master(studRegNum),
+FOREIGN KEY(courseNum) REFERENCES Course_Master(courseNum),
+studTenthPercentage float NOT NULL, studTwelfthPercentage float NOT NULL,
+studGraduationPercentage float, studPostGraduationPercentage float );  
+
+5. 
+create table Balance_Fees( balanceNum int PRIMARY KEY auto_increment,
+studRegNum int, courseNum int,  
+FOREIGN KEY(studRegNum) REFERENCES Student_Master(studRegNum),
+FOREIGN KEY(courseNum) REFERENCES Course_Master(courseNum),
+totalBalance float NOT NULL);
+
+alter table balance_fees add( academicYear_from int(4), academicYear_to int(4) );
+alter table balance_fees add( courseFees float );
+
+----------------------------------------------------------------------------------------------
+
+6. 
+create table Advance_Fees( advanceNum int PRIMARY KEY auto_increment,
+studRegNum int, courseNum int,  
+FOREIGN KEY(studRegNum) REFERENCES Student_Master(studRegNum),
+FOREIGN KEY(courseNum) REFERENCES Course_Master(courseNum),
+totalAdvance float );
+
+alter table Advance_Fees add( academicYear_from int(4), academicYear_to int(4) );
+alter table Advance_Fees add( courseFees float );
+ 
+----------------------------------------------------------------------------------------------
+insert into course_master(courseName, courseFees, courseDuration) values ( );
+
+----------------------------------------------------------------------------------------------
+
+
+
+CourseWise Student List :
+
+select * from student_master, course_master, stud_qualifications
+where
+student_master.studRegNum = stud_qualifications.studRegNum AND
+ course_master.courseNum = stud_qualifications.courseNum AND
+course_master.courseNum = 4;
+
+----------------------------------------------------------------------------------------------
+
+insert into balance_fees( studRegNum, courseNum, totalBalance )
+values( 2, 4, (select courseFees from course_master
+               where courseNum = ?) );
+               
+--------------------------------------------------------------------------------------
+CourseWise Balance List :
+
+select student_master.studRegNum, studName, courseName,totalBalance from 
+student_master, course_master, balance_fees
+where
+student_master.studRegNum = balance_fees.studRegNum AND
+ course_master.courseNum = balance_fees.courseNum AND
+course_master.courseName = ?  
+
+--------------------------------------------------------------------------------------
+Upon Challan Fill : Do Subtraction in Brackets, Or Before & set the Value Directly
+update balance_fees SET totalBalance = ( 10000-10000 )
+ where studRegNum = 1;
+
+---------------------------------------------------------------------------------------
+ select studName, courseName, sum(currentInstallment) AS amountDeposited from stud_admission, student_master, course_master
+  where 
+student_master.studRegNum = stud_admission.studRegNum AND
+ course_master.courseNum = stud_admission.courseNum AND
+course_master.courseName = 'MCS'  
+ 
+ 
+ 
+ 
+student_master.studRegNum = balance_fees.studRegNum AND
+ course_master.courseNum = balance_fees.courseNum AND
+course_master.courseName = ?  
+
+
+
+------------------------------------------------------------------------------------------------------
+Stored Function Example :
+
+DELIMITER //
+create FUNCTION getStudName( p_regNum int )
+returns varchar(20)
+BEGIN 
+	DECLARE sName varchar(20);
+	SET sName  = (select studName from Student_Master where 	studRegNum = p_regNum);
+	return sName;
+END //
+
+mysql> select getStudName( 4 ) from dual;
++------------------+
+| getStudName( 4 ) |
++------------------+
+| Viraj Deshpande  |
++------------------+
+1 row in set (0.02 sec)
+
+
+
+DELIMITER //
+create FUNCTION getCourseName( p_regNum int )
+returns varchar(20)
+BEGIN 
+	DECLARE cName varchar(20);
+	SET cName  = (select courseName from Course_Master where courseNum = p_regNum);
+	return cName;
+END //
+
+--------------------------------------------------------------------------------------------------------
+Trigger Example :
+
+delimiter //
+
+	CREATE OR REPLACE TRIGGER ins_balanceFees AFTER INSERT ON Student_Master
+	FOR EACH ROW
+	BEGIN
+    
+    DECLARE v_courseFees float;
+    DECLARE v_totalFees float;
+	DECLARE v_sch char(1);
+	DECLARE v_per int(3);
+	SET v_totalFees  = (select courseFees from Course_Master where courseNum = NEW.courseNum);
+    select scholar_eligb, percent_concess into v_sch, v_per from Student_Master where studRegNum = NEW.studRegNum;
+	IF 
+    v_sch = 'Y' THEN 
+    SET v_courseFees = v_totalFees * ((100-v_per)/100);
+    ELSE
+    SET  v_courseFees = v_totalFees;
+	END IF;
+	insert into Balance_Fees(studRegNum, courseNum,  totalBalance , academicYear_from, academicYear_to, courseFees )
+	values( NEW.studRegNum, NEW.courseNum,  v_couseFees , NEW.academicYear_from, NEW.academicYear_to, v_totalFees );
+    
+END //
+
+--------------------------------------------------------------------------------------------------------
+where admissionDate = '2015-09-11'
+
+select admissionDate AS InstallmentDate, getStudName(studRegNum), getCourseName(courseNum), sum(currentInstallment) AS amountDeposited
+from stud_admission where challanNum != 1  GROUP BY getStudName(studRegNum), getCourseName(courseNum), admissionDate
+
+
+// Exclude 1st Dummy Value 
+ select admissionDate AS installmentDate, sum( currentInstallment )
+  from stud_admission where challanNum != 1 group by admissionDate;
+  +-----------------+---------------------------+
+| installmentDate | sum( currentInstallment ) |
++-----------------+---------------------------+
+| 2015-09-11      |                     35000 |
+| 2015-09-12      |                     10000 |
++-----------------+---------------------------+
+2 rows in set (0.00 sec)
+  ----------------------------------------------------------------------------------------------------
+  
+  mysql> select * from tab;
++-----+---------+
+| Num | Name    |
++-----+---------+
+|  15 | Jyotsna |
+|  17 | Rohan   |
+|  27 | Viraj   |
++-----+---------+
+3 rows in set (0.00 sec)
+
+mysql>
+mysql> delete from tab where Num != 17;
+Query OK, 2 rows affected (0.11 sec)
+
+mysql> select * from tab;
++-----+-------+
+| Num | Name  |
++-----+-------+
+|  17 | Rohan |
++-----+-------+
+1 row in set (0.00 sec)
+  

@@ -1,0 +1,42 @@
+
+Student Details DB File
+
+1. USER CREATION :
+
+ 	mysql> create user 'rvd'@'localhost' IDENTIFIED BY 'sarhad123';
+	
+	Query OK, 0 rows affected (0.00 sec)
+
+	mysql> grant all privileges on *.* to 'rvd'@'localhost'
+    	   -> with GRANT option;
+
+	Query OK, 0 rows affected (0.00 sec)
+
+
+2. Course Table :
+ 
+create table Course_Master (  
+								courseID int PRIMARY KEY auto_increment, courseName varchar(20)
+						   );
+						
+mysql> desc Course_Master;
++------------+-------------+------+-----+---------+----------------+
+| Field      | Type        | Null | Key | Default | Extra          |
++------------+-------------+------+-----+---------+----------------+
+| courseID   | int(11)     | NO   | PRI | NULL    | auto_increment |
+| courseName | varchar(20) | YES  |     | NULL    |                |
++------------+-------------+------+-----+---------+----------------+
+2 rows in set (0.01 sec)
+							
+
+3. Student Table :
+							
+create table Student_Master(  
+							  studentID int PRIMARY KEY auto_increment, studentName varchar(20),
+							  studTenthPercentage float NOT NULL, studTwelthPercentage float NOT NULL,
+							  studGraduationPercentage float, studPostGraduationPercentage float,
+							  courseNum int, FOREIGN KEY(courseNum) REFERENCES Course_Master(courseID),
+							  studentFine float DEFAULT 0 
+						   );							
+
+						 
